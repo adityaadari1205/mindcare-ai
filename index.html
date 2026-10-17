@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MindCare AI — Mental Health Support</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3450;
+      --text: #e8eaf6;
+      --text-muted: #8c92b0;
+      --accent: #6c63ff;
+      --accent-light: #8b83ff;
+      --green: #4ade80;
+      --yellow: #facc15;
+      --orange: #fb923c;
+      --red: #f87171;
+      --crisis: #ef4444;
+      --radius: 12px;
+      --font: -apple-system, "Segoe UI", system-ui, sans-serif;
+    }
+    html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); font-size: 15px; }
+
+    /* ── Layout ───────────────────────────────────────────────────── */
+    .app { display: grid; grid-template-columns: 280px 1fr; grid-template-rows: 60px 1fr; height: 100vh; }
+
+    /* ── Header ───────────────────────────────────────────────────── */
+    header {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+    }
+    .header-brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { font-size: 24px; }
+    .brand-name { font-size: 18px; font-weight: 700; color: var(--accent-light); }
+    .brand-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .header-badge {
+      background: var(--crisis); color: white; font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 20px; cursor: pointer;
+    }
+    .ibm-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--text-muted);
+    }
+    .ibm-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+
+    /* ── Sidebar ───────────────────────────────────────────────────── */
+    aside {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
+    .sidebar-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      font-size: 14px; color: var(--text-muted); transition: all 0.15s;
+      border: none; background: none; width: 100%; text-align: left; margin-bottom: 2px;
+    }
+    .nav-btn:hover { background: var(--surface2); color: var(--text); }
+    .nav-btn.active { background: rgba(108, 99, 255, 0.15); color: var(--accent-light); }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    /* Risk Meter */
+    .risk-meter { padding: 16px; }
+    .risk-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .risk-bar-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .risk-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease, background 0.5s ease; width: 0%; background: var(--green); }
+    .risk-status { display: flex; justify-content: space-between; align-items: center; }
+    .risk-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+    .risk-none { background: rgba(74,222,128,0.15); color: var(--green); }
+    .risk-low { background: rgba(74,222,128,0.15); color: var(--green); }
+    .risk-medium { background: rgba(250,204,21,0.15); color: var(--yellow); }
+    .risk-high { background: rgba(251,146,60,0.15); color: var(--orange); }
+    .risk-critical { background: rgba(239,68,68,0.2); color: var(--red); animation: flash 1s infinite; }
+    @keyframes flash { 0%,100%{opacity:1}50%{opacity:0.6} }
+
+    /* Crisis Banner */
+    .crisis-panel { padding: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; margin: 12px; display: none; }
+    .crisis-panel.show { display: block; }
+    .crisis-panel h4 { color: var(--red); font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    .crisis-hotline { font-size: 13px; font-weight: 700; color: white; margin: 4px 0; }
+    .crisis-sub { font-size: 11px; color: var(--text-muted); }
+
+    /* Trend */
+    .trend-widget { padding: 12px 16px; }
+    .trend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .trend-arrow { font-size: 16px; }
+
+    /* ── Main Area ─────────────────────────────────────────────────── */
+    main { display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Tab panels */
+    .panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .panel.active { display: flex; }
+
+    /* ── Chat Panel ────────────────────────────────────────────────── */
+    #panel-chat { flex-direction: column; }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 24px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .msg { display: flex; gap: 12px; max-width: 85%; animation: msgIn 0.2s ease; }
+    @keyframes msgIn { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none} }
+    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg-avatar {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .msg.ai .msg-avatar { background: linear-gradient(135deg, #6c63ff, #a855f7); }
+    .msg.user .msg-avatar { background: var(--surface2); }
+    .msg-body { display: flex; flex-direction: column; gap: 4px; }
+    .msg-bubble {
+      padding: 12px 16px; border-radius: 16px; line-height: 1.6; font-size: 14px;
+    }
+    .msg.ai .msg-bubble { background: var(--surface2); border-bottom-left-radius: 4px; }
+    .msg.user .msg-bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+    .msg-time { font-size: 11px; color: var(--text-muted); padding: 0 4px; }
+    .msg.user .msg-time { text-align: right; }
+
+    .msg-resources { margin-top: 8px; }
+    .resource-card {
+      background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.2);
+      border-radius: 8px; padding: 10px 12px; margin-top: 6px; font-size: 13px;
+    }
+    .resource-card h5 { color: var(--accent-light); margin-bottom: 4px; }
+    .resource-card p { color: var(--text-muted); font-size: 12px; }
+
+    .alert-card {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px; padding: 12px; margin-top: 8px;
+    }
+    .alert-card h5 { color: var(--red); font-size: 13px; margin-bottom: 6px; }
+    .alert-hotline { font-weight: 700; color: white; font-size: 14px; }
+
+    .disclaimer-badge {
+      font-size: 11px; color: var(--text-muted); margin-top: 6px; padding: 4px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Typing indicator */
+    .typing-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+    .dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: bounce 1.2s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,60%,100%{transform:none}30%{transform:translateY(-6px)} }
+
+    /* Chat Input */
+    .chat-input-area {
+      padding: 16px 24px; background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+    .disclaimer-bar {
+      font-size: 11px; color: var(--text-muted); text-align: center;
+      padding-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .chat-input-row { display: flex; gap: 10px; align-items: flex-end; }
+    .chat-textarea {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 16px; color: var(--text); font-family: var(--font);
+      font-size: 14px; resize: none; min-height: 48px; max-height: 120px;
+      transition: border-color 0.2s; outline: none; line-height: 1.5;
+    }
+    .chat-textarea:focus { border-color: var(--accent); }
+    .chat-textarea::placeholder { color: var(--text-muted); }
+    .send-btn {
+      width: 48px; height: 48px; border-radius: 12px; background: var(--accent);
+      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; transition: all 0.15s; flex-shrink: 0;
+    }
+    .send-btn:hover { background: var(--accent-light); transform: scale(1.05); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* Quick prompts */
+    .quick-prompts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .qp-btn {
+      font-size: 12px; padding: 6px 12px; border-radius: 20px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+    }
+    .qp-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* ── Journal Panel ─────────────────────────────────────────────── */
+    #panel-journal { padding: 24px; overflow-y: auto; flex-direction: column; gap: 20px; }
+    .section-header { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .section-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+    .journal-textarea {
+      width: 100%; min-height: 220px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+      color: var(--text); font-family: var(--font); font-size: 14px; resize: vertical;
+      outline: none; transition: border-color 0.2s; line-height: 1.7;
+    }
+    .journal-textarea:focus { border-color: var(--accent); }
+    .journal-textarea::placeholder { color: var(--text-muted); }
+    .btn-primary {
+      background: var(--accent); color: white; border: none;
+      padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; margin-top: 12px;
+    }
+    .btn-primary:hover { background: var(--accent-light); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .analysis-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; margin-top: 20px;
+    }
+    .analysis-card h3 { font-size: 16px; margin-bottom: 16px; }
+    .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .analysis-item { background: var(--surface); border-radius: 8px; padding: 12px; }
+    .analysis-item h4 { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      font-size: 11px; padding: 3px 8px; border-radius: 10px;
+      background: rgba(108,99,255,0.15); color: var(--accent-light);
+    }
+    .tag.positive { background: rgba(74,222,128,0.15); color: var(--green); }
+    .tag.negative { background: rgba(248,113,113,0.15); color: var(--red); }
+    .reflection-text { font-size: 14px; line-height: 1.6; color: var(--text); font-style: italic; }
+
+    /* ── Wellness Panel ────────────────────────────────────────────── */
+    #panel-wellness { padding: 24px; overflow-y: auto; flex-direction: column; gap: 16px; }
+    .pref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .pref-card {
+      background: var(--surface2); border: 2px solid var(--border);
+      border-radius: 10px; padding: 12px; cursor: pointer; text-align: center; transition: all 0.15s;
+    }
+    .pref-card.selected { border-color: var(--accent); background: rgba(108,99,255,0.1); }
+    .pref-icon { font-size: 24px; margin-bottom: 6px; }
+    .pref-label { font-size: 12px; color: var(--text-muted); }
+    .wellness-plan-output {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; white-space: pre-wrap;
+      line-height: 1.8; font-size: 14px; color: var(--text);
+    }
+
+    /* ── Resources Panel ───────────────────────────────────────────── */
+    #panel-resources { padding: 24px; overflow-y: auto; flex-direction: column; gap: 16px; }
+    .resource-section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .helpline-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .helpline-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px; transition: border-color 0.15s;
+    }
+    .helpline-card:hover { border-color: var(--accent); }
+    .helpline-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .helpline-contact { font-size: 18px; font-weight: 700; color: var(--accent-light); margin: 8px 0; }
+    .helpline-meta { font-size: 12px; color: var(--text-muted); }
+    .helpline-avail { font-size: 11px; color: var(--green); margin-top: 4px; }
+    .tab-filter { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); transition: all 0.15s;
+    }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .app-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px; display: flex; align-items: flex-start; gap: 12px;
+    }
+    .app-card-icon { font-size: 28px; flex-shrink: 0; }
+    .app-card-body h4 { font-size: 14px; font-weight: 600; }
+    .app-card-body p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .app-cost { font-size: 11px; color: var(--green); margin-top: 4px; font-weight: 600; }
+    .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+
+    /* ── Welcome ───────────────────────────────────────────────────── */
+    .welcome-msg {
+      background: linear-gradient(135deg, rgba(108,99,255,0.1), rgba(168,85,247,0.05));
+      border: 1px solid rgba(108,99,255,0.2); border-radius: 12px;
+      padding: 20px; margin-bottom: 8px;
+    }
+    .welcome-msg h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .welcome-msg p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+    /* Scrollbar for panels */
+    #panel-journal::-webkit-scrollbar,
+    #panel-wellness::-webkit-scrollbar,
+    #panel-resources::-webkit-scrollbar { width: 4px; }
+    #panel-journal::-webkit-scrollbar-thumb,
+    #panel-wellness::-webkit-scrollbar-thumb,
+    #panel-resources::-webkit-scrollbar-thumb { background: var(--border); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .app { grid-template-columns: 1fr; grid-template-rows: 60px auto 1fr; }
+      aside { grid-row: 2; max-height: 180px; flex-direction: row; overflow-x: auto; }
+      .sidebar-section:last-child { display: none; }
+      .analysis-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <header>
+    <div class="header-brand">
+      <div class="brand-icon">💙</div>
+      <div>
+        <div class="brand-name">MindCare AI</div>
+        <div class="brand-sub">Mental Health Support Agent</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="ibm-badge">
+        <div class="ibm-dot"></div>
+        <span>IBM Granite + WatsonX</span>
+      </div>
+      <div class="header-badge" onclick="showCrisisPanel()">🆘 Crisis Help</div>
+    </div>
+  </header>
+
+  <!-- ── Sidebar ────────────────────────────────────────────────── -->
+  <aside>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Navigation</div>
+      <button class="nav-btn active" onclick="showPanel('chat', this)">
+        <span class="nav-icon">💬</span> Chat with MindCare
+      </button>
+      <button class="nav-btn" onclick="showPanel('journal', this)">
+        <span class="nav-icon">📖</span> Journal Analysis
+      </button>
+      <button class="nav-btn" onclick="showPanel('wellness', this)">
+        <span class="nav-icon">🌱</span> Wellness Plan
+      </button>
+      <button class="nav-btn" onclick="showPanel('resources', this)">
+        <span class="nav-icon">🔗</span> Resources & Helplines
+      </button>
+    </div>
+
+    <div class="sidebar-section risk-meter">
+      <div class="risk-label">Session Risk Indicator</div>
+      <div class="risk-bar-track">
+        <div class="risk-bar-fill" id="riskBarFill"></div>
+      </div>
+      <div class="risk-status">
+        <span id="riskBadge" class="risk-badge risk-none">Calm</span>
+        <span style="font-size:11px;color:var(--text-muted)" id="riskScore">0%</span>
+      </div>
+    </div>
+
+    <div class="crisis-panel" id="crisisPanel">
+      <h4>🆘 CRISIS RESOURCES</h4>
+      <div class="crisis-hotline">📞 988</div>
+      <div class="crisis-sub">Suicide & Crisis Lifeline (24/7)</div>
+      <div class="crisis-hotline" style="margin-top:8px">💬 Text HOME → 741741</div>
+      <div class="crisis-sub">Crisis Text Line (24/7)</div>
+      <div class="crisis-hotline" style="margin-top:8px">India: 9152987821</div>
+      <div class="crisis-sub">iCall Helpline</div>
+    </div>
+
+    <div class="trend-widget sidebar-section">
+      <div class="sidebar-title">Mood Trend</div>
+      <div class="trend-item" id="trendIndicator">
+        <span class="trend-arrow">➡️</span>
+        <span>Waiting for data...</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="trendReco"></div>
+    </div>
+
+    <div class="sidebar-section" style="margin-top:auto;">
+      <div style="font-size:11px;color:var(--text-muted);text-align:center;line-height:1.6;">
+        ⚠️ AI support tool only.<br>Not a substitute for professional care.
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────────────── -->
+  <main>
+    <!-- Chat Panel -->
+    <div class="panel active" id="panel-chat">
+      <div class="chat-messages" id="chatMessages">
+        <div class="welcome-msg">
+          <h3>Welcome to MindCare AI 💙</h3>
+          <p>I'm here to listen, support, and provide resources for your mental well-being. This is a safe, non-judgmental space. You can share what's on your mind, explore coping strategies, or find professional help resources.</p>
+          <p style="margin-top:8px;font-size:12px;">⚠️ I am an AI companion, not a therapist. For immediate crisis support, call <strong>988</strong> or text <strong>HOME to 741741</strong>.</p>
+        </div>
+        <div class="msg ai">
+          <div class="msg-avatar">💙</div>
+          <div class="msg-body">
+            <div class="msg-bubble">Hi there! I'm MindCare, your AI mental health companion. I'm here to listen and support you. How are you feeling today? 💙</div>
+            <div class="msg-time" id="welcomeTime"></div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <div class="disclaimer-bar">
+          <span>⚠️</span>
+          <span>AI support only — not medical advice. Crisis? Call <strong>988</strong> or text <strong>HOME to 741741</strong></span>
+        </div>
+        <div class="quick-prompts">
+          <button class="qp-btn" onclick="sendQuick(`I've been feeling really anxious lately`)">😰 Feeling anxious</button>
+          <button class="qp-btn" onclick="sendQuick(`I'm struggling with depression`)">😔 Feeling depressed</button>
+          <button class="qp-btn" onclick="sendQuick(`I need help with stress management`)">😤 Stressed out</button>
+          <button class="qp-btn" onclick="sendQuick(`Can you teach me a breathing exercise?`)">🌬️ Breathing exercise</button>
+        </div>
+        <div class="chat-input-row">
+          <textarea class="chat-textarea" id="chatInput" placeholder="Share what's on your mind... I'm here to listen." rows="1"
+            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journal Panel -->
+    <div class="panel" id="panel-journal">
+      <div class="section-header">📖 Journal Analysis</div>
+      <p class="section-sub">Write freely about your thoughts and feelings. Our AI will analyze your entry for emotional themes and provide supportive insights.</p>
+      <textarea class="journal-textarea" id="journalInput"
+        placeholder="Today I feel... / What's been on my mind... / I'm grateful for... / I'm struggling with..."></textarea>
+      <div>
+        <button class="btn-primary" id="analyzeBtn" onclick="analyzeJournal()">✨ Analyze My Journal Entry</button>
+      </div>
+      <div id="journalAnalysis" style="display:none;">
+        <div class="analysis-card">
+          <h3>📊 Journal Analysis Results</h3>
+          <div class="analysis-grid">
+            <div class="analysis-item">
+              <h4>Emotional Themes</h4>
+              <div class="tag-list" id="emotionalThemes"></div>
+            </div>
+            <div class="analysis-item">
+              <h4>Positive Indicators</h4>
+              <div class="tag-list" id="positiveIndicators"></div>
+            </div>
+            <div class="analysis-item">
+              <h4>Areas of Concern</h4>
+              <div class="tag-list" id="distressSignals"></div>
+            </div>
+            <div class="analysis-item">
+              <h4>Risk Level</h4>
+              <span class="risk-badge" id="journalRiskBadge"></span>
+            </div>
+          </div>
+          <div class="analysis-item" style="margin-top:12px;">
+            <h4>Empathetic Reflection</h4>
+            <p class="reflection-text" id="empathyReflection"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wellness Panel -->
+    <div class="panel" id="panel-wellness">
+      <div class="section-header">🌱 Personalized Wellness Plan</div>
+      <p class="section-sub">Select your focus areas and we'll generate a personalized 7-day wellness plan powered by IBM Granite.</p>
+      <div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Select your focus areas:</div>
+        <div class="pref-grid">
+          <div class="pref-card" onclick="togglePref(this, 'sleep')"><div class="pref-icon">😴</div><div class="pref-label">Better Sleep</div></div>
+          <div class="pref-card" onclick="togglePref(this, 'anxiety')"><div class="pref-icon">😌</div><div class="pref-label">Reduce Anxiety</div></div>
+          <div class="pref-card" onclick="togglePref(this, 'depression')"><div class="pref-icon">🌤️</div><div class="pref-label">Lift Mood</div></div>
+          <div class="pref-card" onclick="togglePref(this, 'stress')"><div class="pref-icon">🧘</div><div class="pref-label">Manage Stress</div></div>
+          <div class="pref-card" onclick="togglePref(this, 'social')"><div class="pref-icon">👥</div><div class="pref-label">Social Connection</div></div>
+          <div class="pref-card" onclick="togglePref(this, 'exercise')"><div class="pref-icon">🏃</div><div class="pref-label">Exercise</div></div>
+          <div class="pref-card" onclick="togglePref(this, 'mindfulness')"><div class="pref-icon">🧠</div><div class="pref-label">Mindfulness</div></div>
+          <div class="pref-card" onclick="togglePref(this, 'journaling')"><div class="pref-icon">✍️</div><div class="pref-label">Journaling</div></div>
+        </div>
+        <button class="btn-primary" id="wellnessBtn" onclick="generateWellness()">🌱 Generate My Wellness Plan</button>
+      </div>
+      <div id="wellnessPlanOutput" style="display:none;">
+        <div class="wellness-plan-output" id="wellnessPlanText"></div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px;">⚠️ This plan is for wellness support only and is not medical advice. Consult a healthcare provider before making significant lifestyle changes.</p>
+      </div>
+    </div>
+
+    <!-- Resources Panel -->
+    <div class="panel" id="panel-resources">
+      <div class="section-header">🔗 Resources & Helplines</div>
+
+      <div class="tab-filter">
+        <button class="filter-btn active" onclick="showResTab('crisis', this)">🆘 Crisis Hotlines</button>
+        <button class="filter-btn" onclick="showResTab('therapy', this)">🛋️ Online Therapy</button>
+        <button class="filter-btn" onclick="showResTab('apps', this)">📱 Wellness Apps</button>
+      </div>
+
+      <!-- Crisis -->
+      <div id="res-crisis">
+        <div class="resource-section-title">🌍 US Hotlines</div>
+        <div class="helpline-grid" id="usHelplines"></div>
+        <div class="resource-section-title" style="margin-top:24px;">🌏 India Helplines</div>
+        <div class="helpline-grid" id="indiaHelplines"></div>
+        <div class="resource-section-title" style="margin-top:24px;">🌐 International</div>
+        <div class="helpline-grid" id="globalHelplines"></div>
+      </div>
+
+      <!-- Therapy -->
+      <div id="res-therapy" style="display:none;">
+        <div class="resource-section-title">🛋️ Online Therapy Platforms</div>
+        <div class="apps-grid" id="therapyList"></div>
+      </div>
+
+      <!-- Apps -->
+      <div id="res-apps" style="display:none;">
+        <div class="resource-section-title">📱 Mental Wellness Apps</div>
+        <div class="apps-grid" id="appsList"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ── State ─────────────────────────────────────────────────────────────────
+  const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  let selectedPrefs = new Set();
+  let isWaiting = false;
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  document.getElementById('welcomeTime').textContent = formatTime(new Date());
+  loadResources();
+
+  // ── Panel Navigation ──────────────────────────────────────────────────────
+  function showPanel(name, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── Chat ──────────────────────────────────────────────────────────────────
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function sendQuick(text) {
+    document.getElementById('chatInput').value = text;
+    sendMessage();
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    if (!message || isWaiting) return;
+
+    isWaiting = true;
+    input.value = '';
+    input.style.height = 'auto';
+    document.getElementById('sendBtn').disabled = true;
+
+    appendMsg('user', message, null, null);
+
+    const typingId = appendTyping();
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, message })
+      });
+      const data = await res.json();
+
+      removeTyping(typingId);
+
+      if (data.success || data.response) {
+        appendMsg('ai', data.response, data.resources || [], data.alert);
+        updateRiskUI(data.riskLevel, data.sessionStats?.currentRiskScore || 0, data.sessionStats?.trend);
+        if (data.isCrisis) showCrisisPanel();
+      } else {
+        appendMsg('ai', 'I encountered an issue. If you need immediate help, please call 988.', [], null);
+      }
+    } catch (err) {
+      removeTyping(typingId);
+      appendMsg('ai', '⚠️ Unable to connect to server. If you are in crisis, please call 988 immediately.', [], null);
+    }
+
+    isWaiting = false;
+    document.getElementById('sendBtn').disabled = false;
+  }
+
+  function appendMsg(role, text, resources, alert) {
+    const container = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = role === 'ai' ? '💙' : '👤';
+
+    const body = document.createElement('div');
+    body.className = 'msg-body';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.innerHTML = formatText(text);
+
+    const time = document.createElement('div');
+    time.className = 'msg-time';
+    time.textContent = formatTime(new Date());
+
+    body.appendChild(bubble);
+
+    if (alert && alert.resources) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = 'alert-card';
+      alertDiv.innerHTML = `<h5>🆘 Crisis Support Available Now</h5>` +
+        alert.resources.slice(0,2).map(r => `<div class="alert-hotline">${r.contact}</div><div style="font-size:12px;color:var(--text-muted)">${r.name}</div>`).join('');
+      body.appendChild(alertDiv);
+    }
+
+    if (resources && resources.length > 0) {
+      const resDiv = document.createElement('div');
+      resDiv.className = 'msg-resources';
+      resources.slice(0, 2).forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'resource-card';
+        card.innerHTML = `<h5>${r.title}</h5><p>${r.content.substring(0, 120)}...</p>`;
+        resDiv.appendChild(card);
+      });
+      body.appendChild(resDiv);
+    }
+
+    if (role === 'ai') {
+      const disc = document.createElement('div');
+      disc.className = 'disclaimer-badge';
+      disc.textContent = '⚠️ AI support only — not a substitute for professional care';
+      body.appendChild(disc);
+    }
+
+    body.appendChild(time);
+
+    div.appendChild(avatar);
+    div.appendChild(body);
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function appendTyping() {
+    const container = document.getElementById('chatMessages');
+    const id = 'typing_' + Date.now();
+    const div = document.createElement('div');
+    div.className = 'msg ai'; div.id = id;
+    div.innerHTML = `<div class="msg-avatar">💙</div><div class="msg-body"><div class="msg-bubble"><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return id;
+  }
+
+  function removeTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  // ── Risk UI ───────────────────────────────────────────────────────────────
+  const RISK_COLORS = { none: '#4ade80', low: '#4ade80', medium: '#facc15', high: '#fb923c', critical: '#ef4444' };
+  const RISK_LABELS = { none: 'Calm', low: 'Mild', medium: 'Moderate', high: 'Elevated', critical: 'Crisis' };
+
+  function updateRiskUI(level, score, trend) {
+    const fill = document.getElementById('riskBarFill');
+    const badge = document.getElementById('riskBadge');
+    const scoreEl = document.getElementById('riskScore');
+
+    fill.style.width = score + '%';
+    fill.style.background = RISK_COLORS[level] || '#4ade80';
+
+    badge.className = `risk-badge risk-${level || 'none'}`;
+    badge.textContent = RISK_LABELS[level] || 'Calm';
+    scoreEl.textContent = score + '%';
+
+    updateTrend(trend);
+  }
+
+  function updateTrend(trend) {
+    const el = document.getElementById('trendIndicator');
+    const reco = document.getElementById('trendReco');
+    if (!trend || trend === 'insufficient_data') return;
+    const arrows = { improving: '📈', stable: '➡️', slightly_increasing: '↗️', escalating: '📉' };
+    const labels = { improving: 'Improving', stable: 'Stable', slightly_increasing: 'Slightly rising', escalating: 'Escalating' };
+    el.innerHTML = `<span class="trend-arrow">${arrows[trend] || '➡️'}</span><span>${labels[trend] || trend}</span>`;
+  }
+
+  // ── Crisis Panel ──────────────────────────────────────────────────────────
+  function showCrisisPanel() {
+    document.getElementById('crisisPanel').classList.add('show');
+  }
+
+  // ── Journal ───────────────────────────────────────────────────────────────
+  async function analyzeJournal() {
+    const text = document.getElementById('journalInput').value.trim();
+    if (!text) return alert('Please write something in your journal first.');
+
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true; btn.textContent = '⏳ Analyzing...';
+
+    try {
+      const res = await fetch('/api/journal/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, journalText: text })
+      });
+      const data = await res.json();
+
+      if (data.success && data.analysis) {
+        renderJournalAnalysis(data.analysis);
+        document.getElementById('journalAnalysis').style.display = 'block';
+      }
+    } catch (err) {
+      alert('Could not analyze journal. Please try again.');
+    }
+
+    btn.disabled = false; btn.textContent = '✨ Analyze My Journal Entry';
+  }
+
+  function renderJournalAnalysis(a) {
+    const themes = document.getElementById('emotionalThemes');
+    const positive = document.getElementById('positiveIndicators');
+    const distress = document.getElementById('distressSignals');
+    const risk = document.getElementById('journalRiskBadge');
+    const reflection = document.getElementById('empathyReflection');
+
+    const toTags = (arr, cls) => (arr || []).map(t => `<span class="tag ${cls}">${t}</span>`).join('');
+    themes.innerHTML = toTags(a.emotional_themes, '');
+    positive.innerHTML = toTags(a.positive_indicators, 'positive');
+    distress.innerHTML = toTags(a.distress_signals?.length ? a.distress_signals : ['None detected'], a.distress_signals?.length ? 'negative' : '');
+
+    risk.className = `risk-badge risk-${a.risk_level || 'low'}`;
+    risk.textContent = RISK_LABELS[a.risk_level] || a.risk_level;
+    reflection.textContent = a.empathetic_reflection || '';
+    updateRiskUI(a.risk_level, (a.risk_level === 'critical' ? 90 : a.risk_level === 'high' ? 70 : a.risk_level === 'medium' ? 45 : 20), null);
+  }
+
+  // ── Wellness ──────────────────────────────────────────────────────────────
+  function togglePref(card, pref) {
+    if (selectedPrefs.has(pref)) { selectedPrefs.delete(pref); card.classList.remove('selected'); }
+    else { selectedPrefs.add(pref); card.classList.add('selected'); }
+  }
+
+  async function generateWellness() {
+    const btn = document.getElementById('wellnessBtn');
+    btn.disabled = true; btn.textContent = '⏳ Generating plan...';
+
+    try {
+      const res = await fetch('/api/wellness/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, preferences: { focus: [...selectedPrefs] } })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        document.getElementById('wellnessPlanText').textContent = data.plan;
+        document.getElementById('wellnessPlanOutput').style.display = 'block';
+        document.getElementById('wellnessPlanOutput').scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (err) {
+      alert('Could not generate plan. Please try again.');
+    }
+
+    btn.disabled = false; btn.textContent = '🌱 Generate My Wellness Plan';
+  }
+
+  // ── Resources ─────────────────────────────────────────────────────────────
+  function showResTab(tab, btn) {
+    ['crisis', 'therapy', 'apps'].forEach(t => {
+      document.getElementById('res-' + t).style.display = t === tab ? '' : 'none';
+    });
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  async function loadResources() {
+    try {
+      const [hlRes, therapyRes, appsRes] = await Promise.all([
+        fetch('/api/resources/helplines').then(r => r.json()),
+        fetch('/api/resources/therapy').then(r => r.json()),
+        fetch('/api/resources/apps').then(r => r.json())
+      ]);
+
+      if (hlRes.success) {
+        const h = hlRes.helplines;
+        renderHelplines('usHelplines', h.us || []);
+        renderHelplines('indiaHelplines', h.india || []);
+        renderHelplines('globalHelplines', h.international || []);
+      }
+
+      if (therapyRes.success) renderTherapy('therapyList', therapyRes.resources);
+      if (appsRes.success) renderApps('appsList', appsRes.resources);
+    } catch(e) {
+      console.error('Could not load resources:', e);
+    }
+  }
+
+  const APP_ICONS = ['🧠', '🌊', '🌿', '💆', '🌸', '⭐'];
+
+  function renderHelplines(containerId, lines) {
+    document.getElementById(containerId).innerHTML = lines.map(h => `
+      <div class="helpline-card">
+        <div class="helpline-name">${h.name}</div>
+        <div class="helpline-contact">${h.phone || h.textOption || h.chat}</div>
+        ${h.textOption && h.phone ? `<div class="helpline-meta">💬 ${h.textOption}</div>` : ''}
+        ${h.chat ? `<div class="helpline-meta">🌐 <a href="${h.chat}" target="_blank" style="color:var(--accent-light)">Visit website</a></div>` : ''}
+        <div class="helpline-avail">⏰ ${h.available} · ${h.cost}</div>
+      </div>`).join('');
+  }
+
+  function renderTherapy(containerId, items) {
+    document.getElementById(containerId).innerHTML = items.map((t, i) => `
+      <div class="app-card">
+        <div class="app-card-icon">${APP_ICONS[i % APP_ICONS.length]}</div>
+        <div class="app-card-body">
+          <h4>${t.name}</h4>
+          <p>${t.description}</p>
+          <div class="app-cost">${t.costRange}</div>
+          ${t.url ? `<a href="${t.url}" target="_blank" style="font-size:12px;color:var(--accent-light);margin-top:6px;display:inline-block;">Visit →</a>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  function renderApps(containerId, items) {
+    document.getElementById(containerId).innerHTML = items.map((a, i) => `
+      <div class="app-card">
+        <div class="app-card-icon">${APP_ICONS[i % APP_ICONS.length]}</div>
+        <div class="app-card-body">
+          <h4>${a.name}</h4>
+          <p>${a.focus}</p>
+          <div class="app-cost">${a.cost}</div>
+          ${a.url ? `<a href="${a.url}" target="_blank" style="font-size:12px;color:var(--accent-light);margin-top:6px;display:inline-block;">Visit →</a>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function formatTime(d) {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatText(text) {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+  }
+</script>
+</body>
+</html>

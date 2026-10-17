@@ -1,0 +1,23 @@
+{
+  "name": "mental-health-ai-agent",
+  "version": "1.0.0",
+  "description": "Agentic AI for Mental Health Awareness & Suicide Prevention powered by IBM Granite",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node src/test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.0",
+    "body-parser": "^1.20.2",
+    "uuid": "^9.0.0",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
